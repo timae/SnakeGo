@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
+	_ "embed" // Required for embedding files
 )
 
 type Position struct {
@@ -31,13 +34,33 @@ var (
 )
 
 func main() {
-	http.HandleFunc("/ws", handleWebSocket)
-	http.Handle("/", http.FileServer(http.Dir("./static")))
+	// Serve the index.html from the root
+	http.HandleFunc("/", serveIndex)
+
+	// Serve static files (js, css, etc.) from the "static" folder
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	fmt.Println("Server started on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		panic(err)
 	}
+}
+
+// Serve the index.html file at the root path
+func serveIndex(w http.ResponseWriter, r *http.Request) {
+	// Get the absolute path to the static directory
+	indexFilePath := filepath.Join("static", "index.html")
+
+	// Open the index.html file
+	file, err := os.Open(indexFilePath)
+	if err != nil {
+		http.Error(w, "Error opening index.html", http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	// Serve the index.html file to the client
+	http.ServeContent(w, r, "index.html", time.Now(), file)
 }
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
