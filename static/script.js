@@ -46,10 +46,13 @@ document.addEventListener("keydown", (event) => {
 function startCountdown() {
     let countdown = 3;
     countdownDiv.innerHTML = countdown; // Display countdown
+    countdownDiv.style.fontSize = "48px"; // Make countdown numbers larger
+    countdownDiv.style.fontWeight = "bold";
+    countdownDiv.style.color = "red";
 
     const countdownInterval = setInterval(() => {
         countdown--;
-        countdownDiv.innerHTML = countdown;
+        countdownDiv.innerHTML = countdown; // Update countdown number
         if (countdown <= 0) {
             clearInterval(countdownInterval);
             countdownDiv.style.display = "none"; // Hide countdown
@@ -60,7 +63,9 @@ function startCountdown() {
 
 // Start Game Logic
 function startGame() {
-    gameInterval = setInterval(updateGame, 100);
+    gameRunning = true;
+    canvas.style.display = "block"; // Show the game canvas
+    gameInterval = setInterval(updateGame, 100); // Start the game loop
 }
 
 // Draw Functions
