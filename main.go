@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"fmt"
 	"net/http"
 	"sync"
@@ -9,16 +10,23 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Position represents a coordinate on the game grid.
 type Position struct {
 	X int `json:"x"`
 	Y int `json:"y"`
 }
 
+// GameState represents the current state of the game.
 type GameState struct {
 	Snake   []Position `json:"snake"`
 	Food    Position   `json:"food"`
 	Running bool       `json:"running"`
 }
+
+// Embed the static folder.
+//
+//go:embed static/*
+var staticFiles embed.FS
 
 var (
 	upgrader  = websocket.Upgrader{}
@@ -31,8 +39,11 @@ var (
 )
 
 func main() {
+	// Serve embedded static files.
+	http.Handle("/", http.FileServer(http.FS(staticFiles)))
+
+	// WebSocket endpoint for game updates.
 	http.HandleFunc("/ws", handleWebSocket)
-	http.Handle("/", http.FileServer(http.Dir("./static")))
 
 	fmt.Println("Server started on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
@@ -40,6 +51,7 @@ func main() {
 	}
 }
 
+// handleWebSocket upgrades the connection to a WebSocket.
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -52,6 +64,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	go gameLoop(conn)
 }
 
+// gameLoop sends the game state to the client periodically.
 func gameLoop(conn *websocket.Conn) {
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
@@ -71,6 +84,7 @@ func gameLoop(conn *websocket.Conn) {
 	}
 }
 
+// updateGameState updates the position of the snake and handles food consumption.
 func updateGameState() {
 	head := gameState.Snake[0]
 	head.X++
