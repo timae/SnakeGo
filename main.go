@@ -1,44 +1,40 @@
 package main
 
 import (
+	"bytes"
+	"embed"
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 	"sync"
-	"time"
 
-	"github.com/gorilla/websocket"
-	_ "embed" // Required for embedding files
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-type Position struct {
-	X int `json:"x"`
-	Y int `json:"y"`
-}
+// Embed static files.
+//go:embed static/*
+var staticFiles embed.FS
 
-type GameState struct {
-	Snake   []Position `json:"snake"`
-	Food    Position   `json:"food"`
-	Running bool       `json:"running"`
+type HighScoreEntry struct {
+	Name  string `json:"name"`
+	Score int    `json:"score"`
 }
 
 var (
-	upgrader  = websocket.Upgrader{}
-	gameState = GameState{
-		Snake:   []Position{{X: 5, Y: 5}},
-		Food:    Position{X: 10, Y: 10},
-		Running: true,
-	}
-	mutex = sync.Mutex{}
+	mutex      = sync.Mutex{}
+	highScores = []HighScoreEntry{}
+)
+
+const (
+	bucketName = "your-s3-bucket-name"
+	region     = "your-region"
 )
 
 func main() {
-	// Serve the index.html from the root
-	http.HandleFunc("/", serveIndex)
-
-	// Serve static files (js, css, etc.) from the "static" folder
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	http.Handle("/", http.FileServer(http.FS(staticFiles)))
+	http.HandleFunc("/highscore", highScoreHandler)
 
 	fmt.Println("Server started on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
@@ -46,62 +42,61 @@ func main() {
 	}
 }
 
-// Serve the index.html file at the root path
-func serveIndex(w http.ResponseWriter, r *http.Request) {
-	// Get the absolute path to the static directory
-	indexFilePath := filepath.Join("static", "index.html")
-
-	// Open the index.html file
-	file, err := os.Open(indexFilePath)
-	if err != nil {
-		http.Error(w, "Error opening index.html", http.StatusInternalServerError)
-		return
-	}
-	defer file.Close()
-
-	// Serve the index.html file to the client
-	http.ServeContent(w, r, "index.html", time.Now(), file)
-}
-
-func handleWebSocket(w http.ResponseWriter, r *http.Request) {
-	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
-		return
-	}
-	defer conn.Close()
-
-	go gameLoop(conn)
-}
-
-func gameLoop(conn *websocket.Conn) {
-	ticker := time.NewTicker(200 * time.Millisecond)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			mutex.Lock()
-			updateGameState()
-			err := conn.WriteJSON(gameState)
-			mutex.Unlock()
-			if err != nil {
-				fmt.Println("Connection error:", err)
-				return
-			}
+func highScoreHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		var scoreData HighScoreEntry
+		err := json.NewDecoder(r.Body).Decode(&scoreData)
+		if err != nil {
+			http.Error(w, "Invalid data", http.StatusBadRequest)
+			return
 		}
+
+		mutex.Lock()
+		highScores = append(highScores, scoreData)
+		mutex.Unlock()
+
+		saveScoresToS3()
+		w.WriteHeader(http.StatusOK)
+	} else if r.Method == http.MethodGet {
+		scores, err := fetchScoresFromS3()
+		if err != nil {
+			http.Error(w, "Failed to fetch scores", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(scores)
 	}
 }
 
-func updateGameState() {
-	head := gameState.Snake[0]
-	head.X++
-	gameState.Snake = append([]Position{head}, gameState.Snake...)
-	gameState.Snake = gameState.Snake[:len(gameState.Snake)-1]
+func saveScoresToS3() {
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := s3.New(sess)
 
-	if head == gameState.Food {
-		gameState.Food = Position{X: head.X + 3, Y: head.Y + 3}
-		gameState.Snake = append(gameState.Snake, Position{})
+	data, _ := json.Marshal(highScores)
+	_, err := svc.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String("highscores.json"),
+		Body:   aws.ReadSeekCloser(bytes.NewReader(data)),
+	})
+	if err != nil {
+		fmt.Println("Error saving scores:", err)
 	}
+}
+
+func fetchScoresFromS3() ([]HighScoreEntry, error) {
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := s3.New(sess)
+
+	resp, err := svc.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String("highscores.json"),
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var scores []HighScoreEntry
+	err = json.NewDecoder(resp.Body).Decode(&scores)
+	return scores, err
 }
