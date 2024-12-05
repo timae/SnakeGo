@@ -29,8 +29,8 @@ var (
 )
 
 const (
-	bucketName = "your-s3-bucket-name"
-	region     = "your-region"
+	bucketName = "bucket-asfvv1wz"
+	region     = "us-east-1"
 )
 
 func main() {
