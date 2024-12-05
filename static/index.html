@@ -5,28 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snake Game</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 0;
-            padding: 0;
-        }
-        canvas {
-            border: 1px solid black;
-            margin-top: 20px;
-        }
-        #startScreen {
-            margin-top: 50px;
+        #gameCanvas {
+            display: none;
         }
     </style>
 </head>
 <body>
     <div id="startScreen">
-        <label for="playerName">Enter your name:</label>
-        <input type="text" id="playerName" placeholder="Your Name" />
+        <input type="text" id="playerName" placeholder="Enter your name">
         <button id="startButton">Start Game</button>
     </div>
-    <canvas id="gameCanvas" width="400" height="400" style="display: none;"></canvas>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+
     <script src="script.js"></script>
 </body>
 </html>
