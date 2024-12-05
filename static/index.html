@@ -3,11 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
     <title>Snake Game</title>
+    <style>
+        /* Basic styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black; /* Set background color to black */
+            color: white; /* Set text color to white */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+        }
+
+        #startScreen {
+            text-align: center;
+        }
+
+        #playerName {
+            margin-bottom: 20px;
+            padding: 10px;
+            width: 200px;
+            font-size: 16px;
+        }
+
+        #startButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        /* Game canvas styling */
+        #gameCanvas {
+            display: none; /* Hide canvas initially */
+            border: 1px solid white;
+        }
+    </style>
 </head>
 <body>
+    <div id="startScreen">
+        <input type="text" id="playerName" placeholder="Enter your name">
+        <button id="startButton">Start Game</button>
+    </div>
     <canvas id="gameCanvas" width="400" height="400"></canvas>
+
     <script src="script.js"></script>
 </body>
 </html>
