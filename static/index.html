@@ -5,8 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snake Game</title>
     <style>
+        /* Basic styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black; /* Set background color to black */
+            color: white; /* Set text color to white */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+        }
+
+        #startScreen {
+            text-align: center;
+        }
+
+        #playerName {
+            margin-bottom: 20px;
+            padding: 10px;
+            width: 200px;
+            font-size: 16px;
+        }
+
+        #startButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        /* Game canvas styling */
         #gameCanvas {
-            display: none;
+            display: none; /* Hide canvas initially */
+            border: 1px solid white;
         }
     </style>
 </head>
