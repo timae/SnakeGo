@@ -30,7 +30,8 @@ var (
 
 const (
 	bucketName = "bucket-asfvv1wz"
-	region     = "us-east-1"
+	// Replace with the custom endpoint URL for Nine's S3-compatible service
+	s3Endpoint = "https://cz42.objects.nineapis.ch/"
 )
 
 func main() {
@@ -70,7 +71,11 @@ func highScoreHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func saveScoresToS3() {
-	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	// Use Nine's S3-compatible endpoint and region.
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region:   aws.String("us-east-1"), // You can set your region or use a placeholder
+		Endpoint: aws.String(s3Endpoint),  // Custom endpoint for Nine
+	}))
 	svc := s3.New(sess)
 
 	data, _ := json.Marshal(highScores)
@@ -85,7 +90,11 @@ func saveScoresToS3() {
 }
 
 func fetchScoresFromS3() ([]HighScoreEntry, error) {
-	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	// Use Nine's S3-compatible endpoint and region.
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region:   aws.String("us-east-1"), // You can set your region or use a placeholder
+		Endpoint: aws.String(s3Endpoint),  // Custom endpoint for Nine
+	}))
 	svc := s3.New(sess)
 
 	resp, err := svc.GetObject(&s3.GetObjectInput{
